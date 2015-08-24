@@ -24,4 +24,10 @@ func main() {
 
 	logger.Info("About to start configuring PowerUnit Bridge...")
 
+	service := NewService(logger)
+
+	if err := service.Start(); err != nil {
+		logger.Error("Could not start Bridge due to (err: %s)", err)
+	}
+
 }
