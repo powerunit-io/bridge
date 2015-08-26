@@ -4,6 +4,7 @@ import (
 	"github.com/powerunit-io/platform/config"
 	"github.com/powerunit-io/platform/logging"
 	"github.com/powerunit-io/platform/service"
+	"github.com/powerunit-io/platform/workers/manager"
 )
 
 // BridgeService -
@@ -12,11 +13,12 @@ type BridgeService struct {
 }
 
 // NewService -
-func NewService(logger *logging.Logger, config *config.ConfigManager) service.Service {
+func NewService(logger *logging.Logger, config *config.ConfigManager, wm manager.Manager) service.Service {
 	serv := BridgeService{
 		&service.BaseService{
-			Logger: logger,
-			Config: config,
+			Logger:  logger,
+			Config:  config,
+			Manager: wm,
 		},
 	}
 
