@@ -36,7 +36,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	msw, err := NewMqttWorker("Secondary Message Bridge", logger, Config_MqttSecondaryWorker)
+	//msw, err := NewMqttWorker("Secondary Message Bridge", logger, Config_MqttSecondaryWorker)
 
 	if err != nil {
 		logger.Error("Could not make new secondary mqtt worker due to (error: %s)", err)
@@ -48,10 +48,12 @@ func main() {
 		os.Exit(2)
 	}
 
+	/**
 	if err := wmanager.AttachWorker(msw.String(), msw); err != nil {
 		logger.Error("Could not attach (worker: %s) due to (err: %s)", msw.String(), err)
 		os.Exit(2)
 	}
+	**/
 
 	if err := service.Start(); err != nil {
 		logger.Error("Could not start Bridge due to (err: %s)", err)
