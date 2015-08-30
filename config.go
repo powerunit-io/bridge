@@ -6,26 +6,34 @@ var (
 
 	// ServiceConfig - Configuration related to base service ConfigManager
 	ServiceConfig = map[string]interface{}{
-		"ServiceName":        ServiceName,
-		"ServiceDescription": ServiceDescription,
-		"ServiceVersion":     ServiceVersion,
+		"service_name":        ServiceName,
+		"service_description": ServiceDescription,
+		"service_version":     ServiceVersion,
 	}
 
-	// DevicesWorkerConfig -
+	// Config_MqttPrimaryWorker -
+	Config_MqttPrimaryWorker = map[string]interface{}{
+		"connection": map[string]interface{}{
+			"network":  os.Getenv("PU_BRIDGE_MQTT_PRIMARY_NETWORK"),
+			"address":  os.Getenv("PU_BRIDGE_MQTT_PRIMARY_ADDRESS"),
+			"clientId": os.Getenv("PU_BRIDGE_MQTT_PRIMARY_CLIENT_ID"),
+		},
+	}
+
+	// Config_MqttSecondaryWorker -
+	Config_MqttSecondaryWorker = map[string]interface{}{
+		"connection": map[string]interface{}{
+			"network":  os.Getenv("PU_BRIDGE_MQTT_SECONDARY_NETWORK"),
+			"address":  os.Getenv("PU_BRIDGE_MQTT_SECONDARY_ADDRESS"),
+			"clientId": os.Getenv("PU_BRIDGE_MQTT_SECONDARY_CLIENT_ID"),
+		},
+	}
+
+	/**
 	DevicesWorkerConfig = map[string]interface{}{
+		"available_connections": []string{"mqtt", "amqp", "mysql"},
+
 		"connections": map[string]interface{}{
-			"mqtt": map[string]interface{}{
-				"mqtt_primary": map[string]interface{}{
-					"network":  os.Getenv("PU_BRIDGE_MQTT_PRIMARY_NETWORK"),
-					"address":  os.Getenv("PU_BRIDGE_MQTT_PRIMARY_ADDRESS"),
-					"clientId": os.Getenv("PU_BRIDGE_MQTT_PRIMARY_CLIENT_ID"),
-				},
-				"mqtt_secondary": map[string]interface{}{
-					"network":  os.Getenv("PU_BRIDGE_MQTT_SECONDARY_NETWORK"),
-					"address":  os.Getenv("PU_BRIDGE_MQTT_SECONDARY_ADDRESS"),
-					"clientId": os.Getenv("PU_BRIDGE_MQTT_SECONDARY_CLIENT_ID"),
-				},
-			},
 			"mysql": map[string]interface{}{
 				"mysql_primary": map[string]interface{}{
 					"uri": os.Getenv("PU_BRIDGE_MYSQL_PRIMARY_URI"),
@@ -42,4 +50,5 @@ var (
 			},
 		},
 	}
+	**/
 )

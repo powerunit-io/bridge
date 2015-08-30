@@ -13,7 +13,7 @@ type BridgeService struct {
 }
 
 // NewService -
-func NewService(logger *logging.Logger, config *config.ConfigManager, wm manager.Manager) service.Service {
+func NewService(logger *logging.Logger, config *config.Config, wm manager.Manager) service.Service {
 	serv := BridgeService{
 		&service.BaseService{
 			Logger:  logger,
