@@ -19,7 +19,15 @@ type MqttWorker struct {
 
 // Start -
 func (mw *MqttWorker) Start(done chan bool) error {
-	mw.Warning("Starting up (device: %s) ...", mw.String())
+	mw.Warning("Starting up (worker: %s) ...", mw.String())
+
+	if err := mw.MqttConnection.Start(done); err != nil {
+		return fmt.Errorf(
+			"Failed to start mqtt connection for (worker: %s) due to (err: %s)",
+			mw.String(), err,
+		)
+	}
+
 	return nil
 }
 
@@ -39,9 +47,9 @@ func (mw *MqttWorker) Validate() error {
 	return nil
 }
 
-// Start -
+// Stop -
 func (mw *MqttWorker) Stop() error {
-	mw.Warning("Starting up (device: %s) ...", mw.String())
+	mw.Warning("Stopping (worker: %s) ...", mw.String())
 	return nil
 }
 
@@ -66,5 +74,5 @@ func NewMqttWorker(name string, log *logging.Logger, data map[string]interface{}
 		MqttConnection: mqtt.MqttConnection{Logger: log, Config: conf},
 	}
 
-	return worker.NewWorker(w), nil
+	return worker.New(w), nil
 }
