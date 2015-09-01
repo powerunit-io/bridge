@@ -1,0 +1,5 @@
+
+
+{"floor": "middle", "room": "bedroom", "plc": "bedroom-main-controller", "device": "dht-sensor", "device_type": "sensor", "data": {
+"celsius": 20, "fahrenheit": 80, "heat_index_celsius": 29.20, "heat_index_fahrenheit": 82.33, "humidity_percentage": 40
+}}

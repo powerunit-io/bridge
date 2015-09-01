@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/powerunit-io/platform/config"
 	"github.com/powerunit-io/platform/connections/mqtt"
-	"github.com/powerunit-io/platform/events"
 	"github.com/powerunit-io/platform/logging"
 	"github.com/powerunit-io/platform/workers/worker"
 )
@@ -21,12 +21,20 @@ type MqttWorker struct {
 func (mw *MqttWorker) Start(done chan bool) error {
 	mw.Warning("Starting up (worker: %s) ...", mw.String())
 
-	if err := mw.MqttConnection.Start(done); err != nil {
+	errors := mw.MqttConnection.Start(done)
+
+	// Just one error for now ...
+	select {
+	case err := <-errors:
 		return fmt.Errorf(
 			"Failed to start mqtt connection for (worker: %s) due to (err: %s)",
 			mw.String(), err,
 		)
+	case <-time.After(2 * time.Second):
+		break
 	}
+
+	go mw.Handle(done)
 
 	return nil
 }
@@ -50,12 +58,30 @@ func (mw *MqttWorker) Validate() error {
 // Stop -
 func (mw *MqttWorker) Stop() error {
 	mw.Warning("Stopping (worker: %s) ...", mw.String())
+
+	// Stopping MqttConnection worker ...
+	mw.MqttConnection.Stop()
+
 	return nil
 }
 
 // Handle -
-func (dw *MqttWorker) Handle(e *events.Event) error {
-	return nil
+func (mw *MqttWorker) Handle(done chan bool) {
+	mw.Info("Listening for events now (worker: %s)", mw.String())
+
+	for {
+		select {
+		case event := <-mw.MqttConnection.DrainEvents():
+			mw.Debug("Got new (event: %s) for (worker: %s)", event, mw.String())
+		case <-done:
+			mw.Warning(
+				"Received kill signal from service. Killing (worker: %s) event handler now ...",
+				mw.String(),
+			)
+			return
+		}
+	}
+
 }
 
 // NewMqttWorker -
