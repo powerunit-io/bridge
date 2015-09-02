@@ -11,6 +11,10 @@ var (
 		"service_version":     ServiceVersion,
 	}
 
+	Config_MySqlPrimary = map[string]interface{}{
+		"uri": os.Getenv("PU_BRIDGE_MYSQL_PRIMARY_URI"),
+	}
+
 	// Config_MqttPrimaryWorker -
 	Config_MqttPrimaryWorker = map[string]interface{}{
 		"connection": map[string]interface{}{

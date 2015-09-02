@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/powerunit-io/platform/config"
+	"github.com/powerunit-io/platform/connections/mysql"
+	helpers "github.com/powerunit-io/platform/helpers/manager"
 	"github.com/powerunit-io/platform/logging"
 	"github.com/powerunit-io/platform/workers/manager"
 )
@@ -15,7 +18,7 @@ func main() {
 
 	logger.Info("About to start configuring Bridge...")
 
-	config, err := config.NewConfigManager(ServiceName, ServiceConfig)
+	cnfservice, err := config.NewConfigManager(ServiceName, ServiceConfig)
 
 	if err != nil {
 		logger.Error("Received error while building configuration (error: %s)", err)
@@ -23,13 +26,32 @@ func main() {
 	}
 
 	wmanager := manager.NewWorkerManager(logger)
+	hmanager := helpers.NewManager(logger)
 
-	service := NewService(logger, config, wmanager)
+	service := NewBridgeService(logger, cnfservice, wmanager, hmanager)
 
 	// Ensure that we can boost our thing as maximum possible.
 	service.SetGoMaxProcs("PU_BRIDGE_GO_MAX_PROCS")
 
-	mpw, err := NewMqttWorker("Primary Message Bridge", logger, Config_MqttPrimaryWorker)
+	// @TODO - One day we should get this connection stuff as helper or something ...
+	cnfmysql, err := config.NewConfigManager(fmt.Sprintf("%s-MYSQL", ServiceName), Config_MySqlPrimary)
+
+	if err != nil {
+		logger.Error("Failed to build mysql config (error: %s)", err)
+		os.Exit(2)
+	}
+
+	mysqlconn, err := mysql.NewConnection(logger, cnfmysql)
+
+	if err != nil {
+		logger.Error("Failed to create new connection (error: %s)", err)
+		os.Exit(2)
+	}
+
+	mpw, err := NewMqttWorker(
+		PrimaryMessageBrokerName, service, logger,
+		Config_MqttPrimaryWorker, mysqlconn,
+	)
 
 	if err != nil {
 		logger.Error("Could not make new primary mqtt worker due to (error: %s)", err)
@@ -43,8 +65,8 @@ func main() {
 		os.Exit(2)
 	}
 
-	if err := wmanager.AttachWorker(mpw.String(), mpw); err != nil {
-		logger.Error("Could not attach (worker: %s) due to (err: %s)", mpw.String(), err)
+	if err := wmanager.AttachWorker(mpw.WorkerName(), mpw); err != nil {
+		logger.Error("Could not attach (worker: %s) due to (err: %s)", mpw.WorkerName(), err)
 		os.Exit(2)
 	}
 
