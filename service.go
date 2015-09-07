@@ -15,14 +15,12 @@ type BridgeService struct {
 
 // NewBridgeService - Will initiate new powerunit-io platform service
 func NewBridgeService(logger *logging.Logger, config *config.Config, wm manager.Manager, hm helpers.Manager) service.Service {
-	serv := BridgeService{
+	return service.NewService(BridgeService{
 		&service.BaseService{
 			Logger:         logger,
 			Config:         config,
 			Manager:        wm,
 			HelpersManager: hm,
 		},
-	}
-
-	return service.NewService(serv)
+	})
 }
