@@ -24,21 +24,21 @@ func main() {
 		os.Exit(2)
 	}
 
-	wmanager := manager.NewWorkerManager(logger)
-	hmanager := helpers.NewManager(logger)
-	dmanager := devices.NewDeviceManager(logger)
-
-	service := NewBridgeService(logger, cnfservice, wmanager, hmanager, dmanager)
-
-	// Ensure that we can boost our thing as maximum possible.
-	service.SetGoMaxProcs("PU_BRIDGE_GO_MAX_PROCS")
-
 	db, err := NewDb(DbAccessName, Config_MySqlPrimary, logger)
 
 	if err != nil {
 		logger.Error("Failed to create database connection (err: %s)", err)
 		os.Exit(2)
 	}
+
+	wmanager := manager.NewWorkerManager(logger)
+	hmanager := helpers.NewManager(logger)
+	dmanager := devices.NewDeviceManager(logger, db)
+
+	service := NewBridgeService(logger, cnfservice, wmanager, hmanager, dmanager)
+
+	// Ensure that we can boost our thing as maximum possible.
+	service.SetGoMaxProcs("PU_BRIDGE_GO_MAX_PROCS")
 
 	if err := service.Bind(db); err != nil {
 		logger.Error("Could not create new bind for (connection: %s) (error: %s)", db.Name(), err)
@@ -51,11 +51,6 @@ func main() {
 
 	if err != nil {
 		logger.Error("Could not make new primary mqtt worker due to (error: %s)", err)
-		os.Exit(2)
-	}
-
-	if err != nil {
-		logger.Error("Could not make new secondary mqtt worker due to (error: %s)", err)
 		os.Exit(2)
 	}
 
