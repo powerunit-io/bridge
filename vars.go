@@ -5,5 +5,6 @@ var (
 	ServiceDescription = ""
 	ServiceVersion     = 0.1
 
-	PrimaryMessageBrokerName = "PLC-01"
+	DbAccessName             = "S-DB-PRIMARY"
+	PrimaryMessageBrokerName = "PLC-MB-01"
 )

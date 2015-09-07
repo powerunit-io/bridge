@@ -1,11 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/powerunit-io/platform/config"
-	"github.com/powerunit-io/platform/connections/mysql"
+	devices "github.com/powerunit-io/platform/devices/manager"
 	helpers "github.com/powerunit-io/platform/helpers/manager"
 	"github.com/powerunit-io/platform/logging"
 	"github.com/powerunit-io/platform/workers/manager"
@@ -27,38 +26,33 @@ func main() {
 
 	wmanager := manager.NewWorkerManager(logger)
 	hmanager := helpers.NewManager(logger)
+	dmanager := devices.NewDeviceManager(logger)
 
-	service := NewBridgeService(logger, cnfservice, wmanager, hmanager)
+	service := NewBridgeService(logger, cnfservice, wmanager, hmanager, dmanager)
 
 	// Ensure that we can boost our thing as maximum possible.
 	service.SetGoMaxProcs("PU_BRIDGE_GO_MAX_PROCS")
 
-	// @TODO - One day we should get this connection stuff as helper or something ...
-	cnfmysql, err := config.NewConfigManager(fmt.Sprintf("%s-MYSQL", ServiceName), Config_MySqlPrimary)
+	db, err := NewDb(DbAccessName, Config_MySqlPrimary, logger)
 
 	if err != nil {
-		logger.Error("Failed to build mysql config (error: %s)", err)
+		logger.Error("Failed to create database connection (err: %s)", err)
 		os.Exit(2)
 	}
 
-	mysqlconn, err := mysql.NewConnection(logger, cnfmysql)
-
-	if err != nil {
-		logger.Error("Failed to create new connection (error: %s)", err)
+	if err := service.Bind(db); err != nil {
+		logger.Error("Could not create new bind for (connection: %s) (error: %s)", db.Name(), err)
 		os.Exit(2)
 	}
 
 	mpw, err := NewMqttWorker(
-		PrimaryMessageBrokerName, service, logger,
-		Config_MqttPrimaryWorker, mysqlconn,
+		PrimaryMessageBrokerName, service, logger, Config_MqttPrimaryWorker,
 	)
 
 	if err != nil {
 		logger.Error("Could not make new primary mqtt worker due to (error: %s)", err)
 		os.Exit(2)
 	}
-
-	//msw, err := NewMqttWorker("Secondary Message Bridge", logger, Config_MqttSecondaryWorker)
 
 	if err != nil {
 		logger.Error("Could not make new secondary mqtt worker due to (error: %s)", err)
@@ -69,13 +63,6 @@ func main() {
 		logger.Error("Could not attach (worker: %s) due to (err: %s)", mpw.WorkerName(), err)
 		os.Exit(2)
 	}
-
-	/**
-	if err := wmanager.AttachWorker(msw.String(), msw); err != nil {
-		logger.Error("Could not attach (worker: %s) due to (err: %s)", msw.String(), err)
-		os.Exit(2)
-	}
-	**/
 
 	if err := service.Start(); err != nil {
 		logger.Error("Could not start Bridge due to (err: %s)", err)

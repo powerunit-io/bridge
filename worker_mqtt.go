@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/powerunit-io/platform/config"
-	"github.com/powerunit-io/platform/connections/mysql"
 	"github.com/powerunit-io/platform/logging"
 	"github.com/powerunit-io/platform/service"
 
@@ -17,7 +16,6 @@ type MqttWorker struct {
 	Service service.Service
 	*logging.Logger
 	*mqttworkers.Worker
-	MySQLConnection mysql.Manager
 }
 
 // Handle -
@@ -43,7 +41,7 @@ handlerloop:
 }
 
 // NewMqttWorker - Will abstract MqttWorker and return back new Worker instance
-func NewMqttWorker(name string, serv service.Service, log *logging.Logger, cnf map[string]interface{}, mysqlconn mysql.Manager) (worker.Worker, error) {
+func NewMqttWorker(name string, serv service.Service, log *logging.Logger, cnf map[string]interface{}) (worker.Worker, error) {
 	conf, err := config.NewConfigManager(name, cnf)
 
 	if err != nil {
@@ -55,7 +53,7 @@ func NewMqttWorker(name string, serv service.Service, log *logging.Logger, cnf m
 	if mqttworker, err := mqttworkers.NewWorker(name, log, conf); err != nil {
 		return nil, err
 	} else {
-		return worker.New(&MqttWorker{Service: serv, MySQLConnection: mysqlconn, Worker: mqttworker, Logger: log}), nil
+		return worker.New(&MqttWorker{Service: serv, Worker: mqttworker, Logger: log}), nil
 	}
 
 }
