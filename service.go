@@ -14,7 +14,6 @@ import (
 	"github.com/powerunit-io/platform/connections/adapters/mysql"
 	"github.com/powerunit-io/platform/devices"
 	"github.com/powerunit-io/platform/events"
-	"github.com/powerunit-io/platform/models"
 	"github.com/powerunit-io/platform/service"
 	"github.com/powerunit-io/platform/workers"
 )
@@ -23,7 +22,6 @@ import (
 type BridgeService struct {
 	service.BaseService
 
-	Rooms  models.Model
 	Events chan events.Event
 }
 
@@ -32,7 +30,7 @@ type BridgeService struct {
 func (bs *BridgeService) Setup() error {
 	bs.Info("Setting up (service: %s) ...", bs.Name())
 
-	if err := bs.AttachMySQLAdapter(DbAccessName, ConfigMySqlPrimary); err != nil {
+	if err := bs.AttachSQLAdapter(DbAccessName, ConfigMySqlPrimary); err != nil {
 		return fmt.Errorf("Failed to create and attach database adapter (err: %s)", err)
 	}
 
@@ -40,24 +38,28 @@ func (bs *BridgeService) Setup() error {
 		return fmt.Errorf("Failed to create and attach mqtt adapter (err: %s)", err)
 	}
 
-	if err := bs.AttachRooms(); err != nil {
-		return fmt.Errorf("Failed to attach rooms due to (err: %s)", err)
+	// We need to start connections in order to be able aggregate rooms n stuff...
+	if err := bs.StartConnections(); err != nil {
+		return fmt.Errorf("Failed to start connections due to (err: %s)", err)
 	}
 
-	if err := bs.AttachDeviceWorker(PrimaryDeviceWorker, ConfigPrimaryDeviceWorker); err != nil {
+	if err := bs.ValidateModels(); err != nil {
+		return fmt.Errorf("Failed to validate models due to (err: %s)", err)
+	}
+
+	if err := bs.AggregateRooms(); err != nil {
+		return fmt.Errorf("Failed to aggregate rooms due to (err: %s)", err)
+	}
+
+	if err := bs.AttachRoomWorker(PrimaryDeviceWorker, ConfigPrimaryDeviceWorker); err != nil {
 		return fmt.Errorf("Failed to create and attach device worker (err: %s)", err)
 	}
 
 	return nil
 }
 
-// AttachRooms -
-func (bs *BridgeService) AttachRooms() (err error) {
-	return
-}
-
-// AttachDeviceWorker -
-func (bs *BridgeService) AttachDeviceWorker(n string, c map[string]interface{}) (err error) {
+// AttachRoomWorker -
+func (bs *BridgeService) AttachRoomWorker(n string, c map[string]interface{}) (err error) {
 	bs.Info("Setting up (service: %s) device (worker: %s)...", bs.Name(), n)
 
 	var worker workers.Worker
@@ -74,7 +76,7 @@ func (bs *BridgeService) AttachDeviceWorker(n string, c map[string]interface{}) 
 // AttachMySQLAdapter - Helper func designed to create and attach (but not start)
 // mysql adapter. Additionally this is a DRY attempt to make sure code is as organized
 // as possible.
-func (bs *BridgeService) AttachMySQLAdapter(n string, c map[string]interface{}) (err error) {
+func (bs *BridgeService) AttachSQLAdapter(n string, c map[string]interface{}) (err error) {
 	bs.Info("Setting up (service: %s) mysql database (adapter: %s)...", bs.Name(), n)
 
 	var adapter mysql.Adapter
@@ -84,6 +86,7 @@ func (bs *BridgeService) AttachMySQLAdapter(n string, c map[string]interface{}) 
 	}
 
 	bs.Connections.Attach(adapter.Name(), adapter)
+
 	return
 }
 
@@ -118,8 +121,9 @@ func NewBridgeService() (service.Service, error) {
 			Workers:     workers.NewManager(logger),
 			Connections: connections.NewManager(logger),
 			Devices:     devices.NewManager(logger),
+			Runtime:     make(chan string),
+			Done:        make(chan bool),
 		},
-		Rooms:  NewRooms(),
 		Events: make(chan events.Event),
 	})
 

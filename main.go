@@ -6,6 +6,7 @@
 package main
 
 import (
+	"flag"
 	"os"
 	"runtime"
 
@@ -13,7 +14,12 @@ import (
 	"github.com/powerunit-io/platform/utils"
 )
 
+var (
+	command = flag.String("command", "run", "Can be syncdb or run.")
+)
+
 func main() {
+	flag.Parse()
 
 	// PUB_PROCESS_COUNT == Getenv('PUB_PROCESS_COUNT')
 	runtime.GOMAXPROCS(utils.GetProcessCount("PUB_PROCESS_COUNT"))
@@ -26,9 +32,19 @@ func main() {
 		os.Exit(2)
 	}
 
-	if err = service.Start(); err != nil {
-		logger.Error("Could not start Bridge due to (err: %s)", err)
-		os.Exit(2)
+	switch *command {
+	case "run":
+		if err = service.Start(); err != nil {
+			logger.Error("Could not start Bridge due to (err: %s)", err)
+			os.Exit(2)
+		}
+	case "syncdb":
+		if err = service.SyncDb(); err != nil {
+			logger.Error("Could not start Bridge due to (err: %s)", err)
+			os.Exit(2)
+		}
+	default:
+
 	}
 
 }
