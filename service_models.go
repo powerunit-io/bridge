@@ -30,40 +30,9 @@ func (bs *BridgeService) GetDb() (db gorm.DB, err error) {
 	return
 }
 
-// SyncDb -
-func (bs *BridgeService) SyncDb() (err error) {
-	bs.Info("About to start synchronizing models ...")
-
-	if db, err = bs.GetDb(); err != nil {
-		return
-	}
-
-	// Enable Logger
-	db.LogMode(true)
-
-	db.Set("gorm:table_options", "ENGINE=InnoDB")
-
-	db.AutoMigrate(&models.User{})
-	db.AutoMigrate(&models.Building{})
-	db.AutoMigrate(&models.Floor{})
-	db.AutoMigrate(&models.Room{})
-
-	db.Model(&models.Floor{}).AddForeignKey("floor_building_id", "building(id)", "CASCADE", "CASCADE")
-	db.Model(&models.Room{}).AddForeignKey("building_id", "building(id)", "CASCADE", "CASCADE")
-	db.Model(&models.Room{}).AddForeignKey("floor_id", "floor(id)", "CASCADE", "CASCADE")
-
-	db.Model(&models.Building{}).AddUniqueIndex("idx_building_name", "name")
-	db.Model(&models.Floor{}).AddUniqueIndex("idx_floor_name", "name")
-
-	db.Model(&models.Room{}).AddUniqueIndex("idx_room_name", "name")
-	db.Model(&models.Room{}).AddUniqueIndex("idx_room_uuid", "uuid")
-
-	return nil
-}
-
-// ScanForBuilding - Will load into service building actual building information.
+// GetBuildings - Will load into service building actual building information.
 // On any error, will return error.
-func (bs *BridgeService) ScanForBuilding() error {
+func (bs *BridgeService) GetBuildings() error {
 	bs.Info("About to start scanning for building information ...")
 
 	var count int
@@ -87,8 +56,8 @@ func (bs *BridgeService) ScanForBuilding() error {
 	return nil
 }
 
-// ScanForRooms -
-func (bs *BridgeService) ScanForRooms() error {
+// GetRooms -
+func (bs *BridgeService) GetRooms() error {
 	bs.Info("About to start scanning for rooms ...")
 
 	if db, err = bs.GetDb(); err != nil {

@@ -48,24 +48,24 @@ func (bs *BridgeService) Setup() error {
 	}
 
 	//
-	if err := bs.ScanForBuilding(); err != nil {
+	if err := bs.GetBuildings(); err != nil {
 		return fmt.Errorf("Failed to scan building data due to (err: %s)", err)
 	}
 
 	//
-	if err := bs.ScanForRooms(); err != nil {
+	if err := bs.GetRooms(); err != nil {
 		return fmt.Errorf("Failed to scan rooms data due to (err: %s)", err)
 	}
 
-	if err := bs.AttachRoomWorker(PrimaryDeviceWorker, ConfigPrimaryDeviceWorker); err != nil {
-		return fmt.Errorf("Failed to create and attach device worker (err: %s)", err)
+	if err := bs.AttachRoomWorkers(PrimaryDeviceWorker, ConfigPrimaryDeviceWorker); err != nil {
+		return fmt.Errorf("Failed to create and attach room workers (err: %s)", err)
 	}
 
 	return nil
 }
 
-// AttachRoomWorker -
-func (bs *BridgeService) AttachRoomWorker(n string, c map[string]interface{}) (err error) {
+// AttachRoomWorkers -
+func (bs *BridgeService) AttachRoomWorkers(n string, c map[string]interface{}) (err error) {
 
 	if db, err = bs.GetDb(); err != nil {
 		return err
