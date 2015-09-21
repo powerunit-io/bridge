@@ -8,6 +8,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/powerunit-io/bridge/models"
 	"github.com/powerunit-io/platform/config"
 	"github.com/powerunit-io/platform/connections"
 	"github.com/powerunit-io/platform/connections/adapters/mqtt"
@@ -21,6 +22,9 @@ import (
 // BridgeService - Proxy above platform base service
 type BridgeService struct {
 	service.BaseService
+
+	Building models.Building
+	Rooms    []models.Room
 
 	Events chan events.Event
 }
@@ -43,12 +47,14 @@ func (bs *BridgeService) Setup() error {
 		return fmt.Errorf("Failed to start connections due to (err: %s)", err)
 	}
 
-	if err := bs.ValidateModels(); err != nil {
-		return fmt.Errorf("Failed to validate models due to (err: %s)", err)
+	//
+	if err := bs.ScanForBuilding(); err != nil {
+		return fmt.Errorf("Failed to scan building data due to (err: %s)", err)
 	}
 
-	if err := bs.AggregateRooms(); err != nil {
-		return fmt.Errorf("Failed to aggregate rooms due to (err: %s)", err)
+	//
+	if err := bs.ScanForRooms(); err != nil {
+		return fmt.Errorf("Failed to scan rooms data due to (err: %s)", err)
 	}
 
 	if err := bs.AttachRoomWorker(PrimaryDeviceWorker, ConfigPrimaryDeviceWorker); err != nil {
@@ -60,20 +66,34 @@ func (bs *BridgeService) Setup() error {
 
 // AttachRoomWorker -
 func (bs *BridgeService) AttachRoomWorker(n string, c map[string]interface{}) (err error) {
-	bs.Info("Setting up (service: %s) device (worker: %s)...", bs.Name(), n)
 
-	var worker workers.Worker
-
-	if worker, err = NewDeviceWorker(n, c, bs); err != nil {
+	if db, err = bs.GetDb(); err != nil {
 		return err
 	}
 
-	bs.Workers.Attach(worker.Name(), worker)
+	for _, room := range bs.Rooms {
+
+		var floor models.Floor
+
+		db.Model(&room).Related(&floor)
+
+		bs.Info("Setting up (service: %s) room (worker: %s)...",
+			bs.Name(), fmt.Sprintf("%s --- %s", room.Name, floor.Name),
+		)
+
+		var worker workers.Worker
+
+		if worker, err = NewRoomWorker(room, floor, c, bs); err != nil {
+			return err
+		}
+
+		bs.Workers.Attach(worker.Name(), worker)
+	}
 
 	return
 }
 
-// AttachMySQLAdapter - Helper func designed to create and attach (but not start)
+// AttachSQLAdapter - Helper func designed to create and attach (but not start)
 // mysql adapter. Additionally this is a DRY attempt to make sure code is as organized
 // as possible.
 func (bs *BridgeService) AttachSQLAdapter(n string, c map[string]interface{}) (err error) {

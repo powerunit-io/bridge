@@ -6,53 +6,65 @@
 package main
 
 import (
+	"fmt"
+
+	"github.com/powerunit-io/bridge/models"
 	"github.com/powerunit-io/platform/config"
 	"github.com/powerunit-io/platform/events"
 	"github.com/powerunit-io/platform/workers"
 )
 
-// DeviceWorker -
-type DeviceWorker struct {
+// RoomWorker -
+type RoomWorker struct {
 	workers.WorkerBase
+
+	Building models.Building
+	Floor    models.Floor
+	Room     models.Room
 
 	*BridgeService
 }
 
 // Handle -
-func (w *DeviceWorker) Handle(e <-chan events.Event) {
+func (w *RoomWorker) Handle(e <-chan events.Event) {
 
 }
 
 // ----------------------- DEFAULTS --------------------------------------------
 
 // Start -
-func (w *DeviceWorker) Start(done chan bool) error {
+func (w *RoomWorker) Start(done chan bool) error {
 	return nil // Nothing to additionally start at this moment.
 }
 
 // Validate -
-func (w *DeviceWorker) Validate() error {
+func (w *RoomWorker) Validate() error {
 	return nil // Nothing extra to validate in this moment
 }
 
 // Stop -
-func (w *DeviceWorker) Stop() error {
+func (w *RoomWorker) Stop() error {
 	return nil // As start has nothing, stop have nothing to do as well.
 }
 
-// NewDeviceWorker -
-func NewDeviceWorker(n string, c map[string]interface{}, s *BridgeService) (workers.Worker, error) {
-	conf, err := config.NewConfigManager(n, c)
+// NewRoomWorker -
+func NewRoomWorker(room models.Room, floor models.Floor, c map[string]interface{}, s *BridgeService) (workers.Worker, error) {
+	name := fmt.Sprintf("%s of %s", room.Name, floor.Name)
+
+	conf, err := config.NewConfigManager(name, c)
 
 	if err != nil {
-		s.Error("Failed to configure configuration manager for (device_worker: %s) (error: %s)", n, err)
+		s.Error("Failed to configure configuration manager for (room_worker: %s) (error: %s)", name, err)
 		return nil, err
 	}
 
-	conf.Set("name", n)
+	conf.Set("name", name)
 
-	return workers.Worker(&DeviceWorker{
+	return workers.Worker(&RoomWorker{
 		BridgeService: s,
+		Room:          room,
+		Floor:         floor,
+		Building:      s.Building,
 		WorkerBase: workers.WorkerBase{
 			Config: conf,
 		},
